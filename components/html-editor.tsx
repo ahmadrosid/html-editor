@@ -102,7 +102,7 @@ export default function HtmlEditor() {
             <TabsTrigger value="js">Javascript</TabsTrigger>
             <div className="absolute right-0">
               <p className="text-sm px-2">
-                Built by{" "}
+                Made with ❤️ by{" "}
                 <a
                   target="_blank"
                   href="https://ahmadrosid.com"
