@@ -2,12 +2,13 @@
 
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import useDebounce from "@/hooks/use-debounce";
 import { useLocalStorage } from "react-use";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "next/navigation";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, LinkIcon, Loader2 } from "lucide-react";
+import { Button } from "./ui/button";
+import { useRouter } from "next/navigation";
 
 type HtmlCode = {
   html: string;
@@ -15,12 +16,36 @@ type HtmlCode = {
   js: string;
 };
 
-export default function HtmlEditor() {
+async function fetchCode(id?: string) {
+  if (!id) return;
+  return fetch("https://api.ahmadrosid.com/html/playgrounds/" + id).then(
+    (res) => res.json()
+  );
+}
+
+async function saveCode({ html, css, js }: HtmlCode) {
+  return fetch("https://api.ahmadrosid.com/html/playgrounds", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      html: html,
+      css: css,
+      js: js,
+    }),
+  });
+}
+
+export default function HtmlEditor({ id }: { id?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryCode = searchParams.get("codeHtml");
   const monaco = useMonaco();
   const [srcDocValue, setSrcDocValue] = useState("");
+  const [shareLabel, setShareLabel] = useState("Share");
+  const [loading, setLoading] = useState(false);
+  const [loadingShareCode, setLoadingShareCode] = useState(false);
   const [code, setCode, remove] = useLocalStorage(
     "codeHtml",
     (queryCode &&
@@ -80,6 +105,17 @@ export default function HtmlEditor() {
     }
   }, [code, cssValue, jsValue, htmlValue, setSrcDocValue]);
 
+  const submitShare = useCallback(() => {
+    if (!code) return;
+    setLoadingShareCode(true);
+    saveCode(code)
+      .then((response) => response.json())
+      .then((data) => {
+        router.push(data.data.id);
+      })
+      .finally(() => setLoadingShareCode(false));
+  }, [code, router]);
+
   useEffect(() => {
     handleCodeUpdate();
   }, [handleCodeUpdate]);
@@ -92,28 +128,79 @@ export default function HtmlEditor() {
     });
   };
 
+  useEffect(() => {
+    if (id) {
+      setCode({
+        html: "",
+        css: "",
+        js: "",
+      });
+      setLoading(true);
+      fetchCode(id)
+        .then((data) => {
+          setCode(data.data);
+          setCssValue(data.data.css);
+          setJsValue(data.data.js);
+          setHtmlValue(data.data.html);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id, setCode]);
+
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full grid grid-cols-2">
       <div className="w-full h-screen p-2 border-r">
         <Tabs defaultValue="html" className="relative">
-          <TabsList>
-            <TabsTrigger value="html">HTML</TabsTrigger>
-            <TabsTrigger value="css">CSS</TabsTrigger>
-            <TabsTrigger value="js">Javascript</TabsTrigger>
-            <div className="absolute right-0">
-              <p className="text-sm px-2">
-                Made with ❤️ by{" "}
-                <a
-                  target="_blank"
-                  href="https://ahmadrosid.com"
-                  className="text-black font-semibold hover:text-blue-700 inline-flex gap-1 items-center"
+          <div className="flex">
+            <TabsList>
+              <TabsTrigger value="html">HTML</TabsTrigger>
+              <TabsTrigger value="css">CSS</TabsTrigger>
+              <TabsTrigger value="js">Javascript</TabsTrigger>
+
+              <div className="absolute right-0">
+                <p className="text-sm px-2">
+                  Made with ❤️ by{" "}
+                  <a
+                    target="_blank"
+                    href="https://ahmadrosid.com"
+                    className="text-black font-semibold hover:text-blue-700 inline-flex gap-1 items-center"
+                  >
+                    ahmadrosid
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+              </div>
+            </TabsList>
+            <div className="px-2 bg-white flex gap-2 items-center">
+              <Button disabled={loadingShareCode} onClick={submitShare}>
+                {shareLabel}
+              </Button>
+              {id ? (
+                <p
+                  onClick={() => {
+                    setShareLabel("Copied!");
+                    navigator.clipboard
+                      .writeText(window.origin + "/" + id)
+                      .then(() => {
+                        setTimeout(() => setShareLabel("Share"), 2000);
+                      });
+                  }}
+                  className="px-2 inline-flex items-center cursor-pointer text-gray-500"
                 >
-                  ahmadrosid
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </p>
+                  <LinkIcon className="w-4 h-4" />
+                  <span>../{id}</span>
+                </p>
+              ) : null}
             </div>
-          </TabsList>
+          </div>
           <TabsContent className="p-0 border-none rounded-none" value="html">
             {monaco && (
               <Editor
