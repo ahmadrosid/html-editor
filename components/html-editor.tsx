@@ -3,9 +3,9 @@
 import Editor, { useMonaco } from "@monaco-editor/react";
 import { useCallback, useEffect, useState } from "react";
 import useDebounce from "@/hooks/use-debounce";
-import { useLocalStorage } from "react-use";
+// import { useLocalStorage } from "react-use";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSearchParams } from "next/navigation";
+// import { useSearchParams } from "next/navigation";
 import { ExternalLink, LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
@@ -39,24 +39,28 @@ async function saveCode({ html, css, js }: HtmlCode) {
 
 export default function HtmlEditor({ id }: { id?: string }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const queryCode = searchParams.get("codeHtml");
   const monaco = useMonaco();
   const [srcDocValue, setSrcDocValue] = useState("");
   const [shareLabel, setShareLabel] = useState("Share");
   const [loading, setLoading] = useState(false);
   const [loadingShareCode, setLoadingShareCode] = useState(false);
-  const [code, setCode, remove] = useLocalStorage(
-    "codeHtml",
-    (queryCode &&
-      (JSON.parse(
-        Buffer.from(queryCode as string, "base64").toString()
-      ) as HtmlCode)) || {
-      html: "<h1>Hello world!</h1>",
-      css: "",
-      js: "",
-    }
-  );
+  const [code, setCode] = useState<HtmlCode>({
+    html: "<h1>Hello world!</h1>",
+    css: "",
+    js: "",
+  });
+
+  // const [code, setCode, remove] = useLocalStorage(
+  //   "codeHtml",
+  //   (queryCode &&
+  //     (JSON.parse(
+  //       Buffer.from(queryCode as string, "base64").toString()
+    //   ) as HtmlCode)) || {
+    //   html: "<h1>Hello world!</h1>",
+    //   css: "",
+    //   js: "",
+    // }
+  // );
 
   const [htmlValue, setHtmlValue] = useState("");
   const debounceHtmlValue = useDebounce(htmlValue, 850);
