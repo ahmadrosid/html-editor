@@ -1,11 +1,9 @@
 "use client";
 
 import Editor, { useMonaco } from "@monaco-editor/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useDebounce from "@/hooks/use-debounce";
-// import { useLocalStorage } from "react-use";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { useSearchParams } from "next/navigation";
 import { ExternalLink, LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
@@ -16,6 +14,67 @@ type HtmlCode = {
   css: string;
   js: string;
 };
+
+const injectConsoleElement = `<button id="toggle-console" style="position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background-color: #374151; color: #fff; border: none; border-radius: 4px; cursor: pointer;z-index:9999;">Toggle Console</button>
+<script>
+  class ConsoleWindow extends HTMLElement {
+    constructor() {
+      super();
+      this.attachShadow({ mode: 'open' });
+      this.shadowRoot.innerHTML = \`
+        <style>
+          #rcXwdu4X {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 98.5vw;
+            height: 100%;
+            max-height: 300px;
+            background-color: #111827;
+            color: #fff;
+            font-family: monospace;
+            padding-top: 10px;
+            padding-left: 10px;
+            overflow-y: auto;
+            display: none;
+          }
+        </style>
+        <div id="rcXwdu4X"></div>
+      \`;
+    }
+
+    connectedCallback() {
+      window.addEventListener('error', this.logError.bind(this));
+      console.log = this.log.bind(this);
+      this.toggleButton = document.getElementById('toggle-console');
+      this.toggleButton.addEventListener('click', this.toggleConsole.bind(this));
+    }
+
+    log(...args) {
+      const logEntry = args.join(' ');
+      const logLine = document.createElement('div');
+      logLine.textContent = logEntry;
+      this.shadowRoot.querySelector('#rcXwdu4X').appendChild(logLine);
+    }
+
+    logError(event) {
+      const errorLine = document.createElement('div');
+      errorLine.style.color = 'red';
+      errorLine.textContent = \`\${event.message} (\${event.filename}:\${event.lineno})\`;
+      this.shadowRoot.querySelector('#rcXwdu4X').appendChild(errorLine);
+    }
+
+    toggleConsole() {
+      const consoleWindow = this.shadowRoot.querySelector('#rcXwdu4X');
+      consoleWindow.style.display = consoleWindow.style.display === 'none' ? 'block' : 'none';
+    }
+  }
+
+  customElements.define('console-window', ConsoleWindow);
+</script>
+
+<console-window></console-window>`
 
 async function fetchCode(id?: string) {
   if (!id) return;
@@ -41,6 +100,7 @@ async function saveCode({ html, css, js }: HtmlCode) {
 export default function HtmlEditor({ id }: { id?: string }) {
   const router = useRouter();
   const monaco = useMonaco();
+
   const [srcDocValue, setSrcDocValue] = useState("");
   const [shareLabel, setShareLabel] = useState("Share");
   const [loading, setLoading] = useState(false);
@@ -50,18 +110,6 @@ export default function HtmlEditor({ id }: { id?: string }) {
     css: "",
     js: "",
   });
-
-  // const [code, setCode, remove] = useLocalStorage(
-  //   "codeHtml",
-  //   (queryCode &&
-  //     (JSON.parse(
-  //       Buffer.from(queryCode as string, "base64").toString()
-    //   ) as HtmlCode)) || {
-    //   html: "<h1>Hello world!</h1>",
-    //   css: "",
-    //   js: "",
-    // }
-  // );
 
   const [htmlValue, setHtmlValue] = useState("");
   const debounceHtmlValue = useDebounce(htmlValue, 850);
@@ -95,8 +143,7 @@ export default function HtmlEditor({ id }: { id?: string }) {
 
     setSrcDocValue(
       `<script type="application/javascript">document.addEventListener("DOMContentLoaded", function(event) { ${code.js} });</script>\n` +
-        `<style>${code.css}</style>\n` +
-        code.html
+        `<style>${code.css}</style>\n` + injectConsoleElement + code.html
     );
 
     if (cssValue == "") {
