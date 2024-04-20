@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ExternalLink, LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
+import { emmetHTML, emmetCSS } from "emmet-monaco-es";
 
 type HtmlCode = {
   html: string;
@@ -217,6 +218,7 @@ export default function HtmlEditor({ id }: { id?: string }) {
                   },
                 }}
                 defaultValue={htmlValue}
+                onMount={(editor, monaco) => emmetHTML(monaco)}
                 onChange={(val) => setHtmlValue(val || "")}
               />
             )}
@@ -234,6 +236,7 @@ export default function HtmlEditor({ id }: { id?: string }) {
                   },
                 }}
                 defaultValue={cssValue}
+                onMount={(editor, monaco) => emmetCSS(monaco)}
                 onChange={(val) => setCssValue(val || "")}
               />
             )}
