@@ -143,7 +143,7 @@ export default function HtmlEditor({ id }: { id?: string }) {
 
     setSrcDocValue(
       `<script type="application/javascript">document.addEventListener("DOMContentLoaded", function(event) { ${code.js} });</script>\n` +
-        `<style>${code.css}</style>\n` + injectConsoleElement + code.html
+        `<style>${code.css}</style>\n` + code.html
     );
 
     if (cssValue == "") {
