@@ -8,73 +8,14 @@ import { ExternalLink, LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRouter } from "next/navigation";
 import { emmetHTML, emmetCSS } from "emmet-monaco-es";
+import ChatUI from "./chat-ui";
+import clsx from "clsx";
 
 type HtmlCode = {
   html: string;
   css: string;
   js: string;
 };
-
-const injectConsoleElement = `<button id="toggle-console" style="position: fixed; bottom: 20px; right: 20px; padding: 10px 20px; background-color: #374151; color: #fff; border: none; border-radius: 4px; cursor: pointer;z-index:9999;">Toggle Console</button>
-<script>
-  class ConsoleWindow extends HTMLElement {
-    constructor() {
-      super();
-      this.attachShadow({ mode: 'open' });
-      this.shadowRoot.innerHTML = \`
-        <style>
-          #rcXwdu4X {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 98.5vw;
-            height: 100%;
-            max-height: 300px;
-            background-color: #111827;
-            color: #fff;
-            font-family: monospace;
-            padding-top: 10px;
-            padding-left: 10px;
-            overflow-y: auto;
-            display: none;
-          }
-        </style>
-        <div id="rcXwdu4X"></div>
-      \`;
-    }
-
-    connectedCallback() {
-      window.addEventListener('error', this.logError.bind(this));
-      console.log = this.log.bind(this);
-      this.toggleButton = document.getElementById('toggle-console');
-      this.toggleButton.addEventListener('click', this.toggleConsole.bind(this));
-    }
-
-    log(...args) {
-      const logEntry = args.join(' ');
-      const logLine = document.createElement('div');
-      logLine.textContent = logEntry;
-      this.shadowRoot.querySelector('#rcXwdu4X').appendChild(logLine);
-    }
-
-    logError(event) {
-      const errorLine = document.createElement('div');
-      errorLine.style.color = 'red';
-      errorLine.textContent = \`\${event.message} (\${event.filename}:\${event.lineno})\`;
-      this.shadowRoot.querySelector('#rcXwdu4X').appendChild(errorLine);
-    }
-
-    toggleConsole() {
-      const consoleWindow = this.shadowRoot.querySelector('#rcXwdu4X');
-      consoleWindow.style.display = consoleWindow.style.display === 'none' ? 'block' : 'none';
-    }
-  }
-
-  customElements.define('console-window', ConsoleWindow);
-</script>
-
-<console-window></console-window>`
 
 async function fetchCode(id?: string) {
   if (!id) return;
@@ -101,6 +42,7 @@ export default function HtmlEditor({ id }: { id?: string }) {
   const router = useRouter();
   const monaco = useMonaco();
 
+  const [hideEditor, setHideEditor] = useState(false);
   const [srcDocValue, setSrcDocValue] = useState("");
   const [shareLabel, setShareLabel] = useState("Share");
   const [loading, setLoading] = useState(false);
@@ -143,7 +85,8 @@ export default function HtmlEditor({ id }: { id?: string }) {
 
     setSrcDocValue(
       `<script type="application/javascript">document.addEventListener("DOMContentLoaded", function(event) { ${code.js} });</script>\n` +
-        `<style>${code.css}</style>\n` + code.html
+        `<style>${code.css}</style>\n` +
+        code.html
     );
 
     if (cssValue == "") {
@@ -199,6 +142,24 @@ export default function HtmlEditor({ id }: { id?: string }) {
     }
   }, [id, setCode]);
 
+  const toggleEditorView = useCallback(() => {
+    setHideEditor(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Check for Ctrl+\ or Cmd+\
+      if ((event.ctrlKey || event.metaKey) && event.key === '\\') {
+        toggleEditorView();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [toggleEditorView]);
+
   if (loading) {
     return (
       <div className="w-full h-screen flex justify-center items-center">
@@ -208,106 +169,117 @@ export default function HtmlEditor({ id }: { id?: string }) {
   }
 
   return (
-    <div className="w-full grid grid-cols-2">
-      <div className="w-full h-screen p-2 border-r">
-        <Tabs defaultValue="html" className="relative">
-          <div className="flex">
-            <TabsList>
-              <TabsTrigger value="html">HTML</TabsTrigger>
-              <TabsTrigger value="css">CSS</TabsTrigger>
-              <TabsTrigger value="js">Javascript</TabsTrigger>
+    <div
+      className={clsx(
+        "w-full grid",
+        hideEditor ? "grid-cols-1" : "grid-cols-2"
+      )}
+    >
+      {hideEditor ? null : (
+        <div className="w-full h-screen p-2 border-r relative">
+          <Tabs defaultValue="html" className="relative">
+            <div className="flex">
+              <TabsList>
+                <TabsTrigger value="html">HTML</TabsTrigger>
+                <TabsTrigger value="css">CSS</TabsTrigger>
+                <TabsTrigger value="js">Javascript</TabsTrigger>
+                {/* <TabsTrigger value="ai">AI Chat</TabsTrigger> */}
 
-              <div className="absolute right-0">
-                <p className="text-sm px-2">
-                  Made with ❤️ by{" "}
-                  <a
-                    target="_blank"
-                    href="https://ahmadrosid.com"
-                    className="text-black font-semibold hover:text-blue-700 inline-flex gap-1 items-center"
+                <div className="absolute right-0">
+                  <p className="text-sm px-2 inline-flex items-center gap-1">
+                    Made with ❤️ by{" "}
+                    <a
+                      target="_blank"
+                      href="https://ahmadrosid.com"
+                      className="text-black font-semibold hover:text-blue-700 inline-flex gap-1 items-center"
+                    >
+                      ahmadrosid
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </p>
+                </div>
+              </TabsList>
+              <div className="px-2 bg-white flex gap-2 items-center">
+                <Button disabled={loadingShareCode} onClick={submitShare}>
+                  {shareLabel}
+                </Button>
+                {id ? (
+                  <p
+                    onClick={() => {
+                      setShareLabel("Copied!");
+                      navigator.clipboard
+                        .writeText(window.origin + "/" + id)
+                        .then(() => {
+                          setTimeout(() => setShareLabel("Share"), 2000);
+                        });
+                    }}
+                    className="px-2 inline-flex items-center cursor-pointer text-gray-500"
                   >
-                    ahmadrosid
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </p>
+                    <LinkIcon className="w-4 h-4" />
+                    <span>../{id}</span>
+                  </p>
+                ) : null}
               </div>
-            </TabsList>
-            <div className="px-2 bg-white flex gap-2 items-center">
-              <Button disabled={loadingShareCode} onClick={submitShare}>
-                {shareLabel}
-              </Button>
-              {id ? (
-                <p
-                  onClick={() => {
-                    setShareLabel("Copied!");
-                    navigator.clipboard
-                      .writeText(window.origin + "/" + id)
-                      .then(() => {
-                        setTimeout(() => setShareLabel("Share"), 2000);
-                      });
-                  }}
-                  className="px-2 inline-flex items-center cursor-pointer text-gray-500"
-                >
-                  <LinkIcon className="w-4 h-4" />
-                  <span>../{id}</span>
-                </p>
-              ) : null}
             </div>
-          </div>
-          <TabsContent className="p-0 border-none rounded-none" value="html">
-            {monaco && (
-              <Editor
-                theme="light"
-                height="93vh"
-                language="html"
-                options={{
-                  minimap: {
-                    enabled: false,
-                  },
-                }}
-                defaultValue={htmlValue}
-                onMount={(editor, monaco) => emmetHTML(monaco)}
-                onChange={(val) => setHtmlValue(val || "")}
-              />
-            )}
-            {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
-          </TabsContent>
-          <TabsContent className="p-0 border-none rounded-none" value="css">
-            {monaco && (
-              <Editor
-                theme="light"
-                height="93vh"
-                language="css"
-                options={{
-                  minimap: {
-                    enabled: false,
-                  },
-                }}
-                defaultValue={cssValue}
-                onMount={(editor, monaco) => emmetCSS(monaco)}
-                onChange={(val) => setCssValue(val || "")}
-              />
-            )}
-            {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
-          </TabsContent>
-          <TabsContent className="p-0 border-none rounded-none" value="js">
-            {monaco && (
-              <Editor
-                theme="light"
-                height="93vh"
-                language="javascript"
-                options={{
-                  minimap: {
-                    enabled: false,
-                  },
-                }}
-                defaultValue={jsValue}
-                onChange={(val) => setJsValue(val || "")}
-              />
-            )}
-            {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent className="p-0 border-none rounded-none" value="html">
+              {monaco && (
+                <Editor
+                  theme="light"
+                  height="93vh"
+                  language="html"
+                  options={{
+                    minimap: {
+                      enabled: false,
+                    },
+                  }}
+                  defaultValue={htmlValue}
+                  onMount={(editor, monaco) => emmetHTML(monaco)}
+                  onChange={(val) => setHtmlValue(val || "")}
+                />
+              )}
+              {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
+            </TabsContent>
+            <TabsContent className="p-0 border-none rounded-none" value="css">
+              {monaco && (
+                <Editor
+                  theme="light"
+                  height="93vh"
+                  language="css"
+                  options={{
+                    minimap: {
+                      enabled: false,
+                    },
+                  }}
+                  defaultValue={cssValue}
+                  onMount={(editor, monaco) => emmetCSS(monaco)}
+                  onChange={(val) => setCssValue(val || "")}
+                />
+              )}
+              {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
+            </TabsContent>
+            <TabsContent className="p-0 border-none rounded-none" value="js">
+              {monaco && (
+                <Editor
+                  theme="light"
+                  height="93vh"
+                  language="javascript"
+                  options={{
+                    minimap: {
+                      enabled: false,
+                    },
+                  }}
+                  defaultValue={jsValue}
+                  onChange={(val) => setJsValue(val || "")}
+                />
+              )}
+              {!monaco && <Loader2 className="animate-spin w-6 h-6" />}
+            </TabsContent>
+            <TabsContent className="p-0 border-none rounded-none" value="ai">
+              <ChatUI />
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
       <div className="bg-white">
         <iframe
           width="100%"
