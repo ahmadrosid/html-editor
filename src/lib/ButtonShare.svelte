@@ -7,7 +7,7 @@ $: code = $sourceCode;
 
 let loading = false;
 
-async function sahreCode() {
+async function shareCode() {
     loading = true;
     const response = await saveCode({
         html: code.html,
@@ -21,7 +21,7 @@ async function sahreCode() {
 }
 </script>
 
-<button on:click={sahreCode} class="text-sm flex gap-2 items-center border-px border-blue-700 bg-blue-600 hover:bg-blue-700 shadow-sm text-white p-2 rounded-md">
+<button on:click={shareCode} class="text-sm flex gap-2 items-center border-px border-blue-700 bg-blue-600 hover:bg-blue-700 shadow-sm text-white p-2 rounded-md">
     {#if loading}
         <Loader2 class="animate-spin size-4" />
     {:else}
