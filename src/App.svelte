@@ -5,8 +5,7 @@
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
 
   export let url = "";
-  const queryClient = new QueryClient()
-
+  const queryClient = new QueryClient();
 </script>
 
 <Router {url}>
