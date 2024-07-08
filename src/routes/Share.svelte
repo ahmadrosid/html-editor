@@ -14,8 +14,6 @@
   });
 
   $: if ($query.isSuccess) {
-    console.log("Query completed successfully! (reactive)");
-    console.log($query.data);
     let data = $query.data.data;
     sourceCode.update(() => ({
       html: data.html,
