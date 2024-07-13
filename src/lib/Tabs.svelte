@@ -3,7 +3,6 @@
   import { createEventDispatcher } from "svelte";
   import MonacoEditor from "./MonacoEditor.svelte";
   import { sourceCode, type Source } from "./store";
-  import { get } from "svelte/store";
   import Share from "./ButtonShare.svelte";
 
   type TabLanguage = keyof Source;
@@ -31,7 +30,7 @@
     sourceCode.update((code) => ({ ...code, [key]: event.detail }));
   }
 
-  $: currentCode = get(sourceCode);
+  $: currentCode = $sourceCode;
 </script>
 
 <div class="flex border-b border-gray-200 mb-1">
@@ -66,12 +65,12 @@
 </div>
 
 {#each tabs as tab}
-  {#if activeTab === tab.name}
+  <div class={activeTab === tab.name ? 'w-full h-full' : 'hidden'}>
     <svelte:component
       this={tab.component}
       language={tab.language}
       value={currentCode[tab.language]}
       on:change={(event) => handleEditorChange(event, tab.language)}
     />
-  {/if}
+  </div>
 {/each}
