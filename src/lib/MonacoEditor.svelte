@@ -19,7 +19,7 @@
   
   const handleChange = debounce((newValue: string) => {
     dispatch('change', newValue);
-  }, 300); // 300ms debounce
+  }, 800); // 300ms debounce
   
   $: if (value) {
     handleChange(value);
