@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import Monaco from "svelte-monaco";
   import { Loader2 } from 'lucide-svelte';
   
@@ -24,10 +24,21 @@
   $: if (value) {
     handleChange(value);
   }
-  
+
+  let editor: any;
+
   function handleReady(event: CustomEvent) {
     editorReady = true;
+    editor = event.detail.editor;
   }
+
+  onMount(() => {
+    return () => {
+      if (editor) {
+        editor.dispose();
+      }
+    };
+  });
   </script>
   
   {#if !editorReady}
@@ -42,7 +53,7 @@
   <div class="w-full h-full" class:hidden={!editorReady}>
     <Monaco
       options={{
-        language,
+        language: language == 'js' ? 'javascript' : language,
         automaticLayout: true,
         minimap: {
           enabled: false,
