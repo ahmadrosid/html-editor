@@ -22,6 +22,6 @@
   bind:this={iframe}
   width="100%"
   height="100%"
-  class="h-screen"
-  sandbox="allow-popups-to-escape-sandbox allow-scripts allow-popups allow-forms allow-pointer-lock allow-top-navigation allow-modals"
+  class="h-screen w-full border-0 bg-white"
+  sandbox="allow-same-origin allow-popups-to-escape-sandbox allow-scripts allow-popups allow-forms allow-pointer-lock allow-top-navigation allow-modals"
 ></iframe>

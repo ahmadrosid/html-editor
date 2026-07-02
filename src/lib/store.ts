@@ -15,7 +15,33 @@ const initialSourceCode: Source = {
 export const sourceCode = writable<Source>(initialSourceCode);
 
 export function formatCode(code: Source) {
-    return `<script type="application/javascript">document.addEventListener("DOMContentLoaded", function(event) { ${code.js} });</script>\n` +
-        `<style>${code.css}</style>\n` +
-        code.html;
+  const style = code.css.trim() ? `<style>${code.css}</style>` : "";
+  const script = code.js.trim() ? `<script>${code.js}</script>` : "";
+  const html = code.html.trim();
+
+  if (/<!doctype|<html[\s>]/i.test(html)) {
+    let document = html;
+
+    document = /<\/head>/i.test(document)
+      ? document.replace(/<\/head>/i, `${style}\n</head>`)
+      : `${style}\n${document}`;
+
+    document = /<\/body>/i.test(document)
+      ? document.replace(/<\/body>/i, `${script}\n</body>`)
+      : `${document}\n${script}`;
+
+    return document;
+  }
+
+  return `<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    ${style}
+  </head>
+  <body>
+    ${code.html}
+    ${script}
+  </body>
+</html>`;
 }
